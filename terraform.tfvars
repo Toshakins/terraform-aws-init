@@ -1,0 +1,1 @@
+pgp_key_path = "~/.gnupg/pubring.gpg"
