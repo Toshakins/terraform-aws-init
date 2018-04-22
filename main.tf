@@ -11,7 +11,7 @@ terraform {
 provider "aws" {
   # Paris
   region = "eu-west-3"
-  profile = "my"
+  profile = "my_root"
 }
 
 locals {
@@ -34,6 +34,7 @@ data "template_file" "terraform_backend_policy" {
 resource "aws_iam_user" "masteradmin" {
   name = "MasterAdmin"
   path = "/system/"
+  force_destroy = true
 }
 
 resource "aws_iam_access_key" "masteradmin_key" {
@@ -117,5 +118,17 @@ resource "aws_s3_bucket" "terraform_backend" {
 
   versioning {
     enabled = true
+  }
+}
+
+resource "aws_dynamodb_table" "terraform_lock_table" {
+  name           = "TerraformLockTable"
+  read_capacity  = 1
+  write_capacity = 1
+  hash_key       = "LockID"
+
+  attribute {
+    name = "LockID"
+    type = "S"
   }
 }
