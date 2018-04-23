@@ -1,9 +1,3 @@
-# 1. Create users
-# * create admin group
-# * create a role that attached to a group
-# https://aws.amazon.com/blogs/security/how-to-restrict-amazon-s3-bucket-access-to-a-specific-iam-role/
-# 2. DynamoDB for locking
-
 terraform {
   required_version = "~> 0.11"
 }
@@ -26,8 +20,8 @@ data "template_file" "terraform_backend_policy" {
   template = "${file("terraform-s3-policy.json")}"
   vars {
     bucket_name = "${local.bucket_name}"
-    group_id = "${aws_iam_group.masteradmin_group.id}"
-    account_id = "${data.aws_caller_identity.current.account_id}"
+    admin_account_id = "${aws_iam_user.masteradmin.unique_id}"
+    root_account_id = "${data.aws_caller_identity.current.account_id}"
   }
 }
 
@@ -49,6 +43,7 @@ resource "aws_iam_user_login_profile" "masteradmin_login_profile" {
 
 resource "aws_iam_group" "masteradmin_group" {
   name = "masteradmin_group"
+  path = "/system/"
 }
 
 resource "aws_iam_policy" "billing_full_access" {

@@ -12,8 +12,8 @@
       "Condition": {
         "StringNotLike": {
           "aws:userId": [
-            "${group_id}:*",
-            "${account_id}"
+            "${root_account_id}",
+            "${admin_account_id}"
           ]
         }
       }
