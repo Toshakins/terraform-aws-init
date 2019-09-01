@@ -11,7 +11,7 @@ provider "aws" {
 locals {
   proj        = "terraform-aws-init"
   bucket_name = join("-", [local.proj, "bucket"])
-  pgp_key     = base64encode(file(pathexpand(var.pgp_key_path)))
+  pgp_key     = filebase64(pathexpand(var.pgp_key_path))
 }
 
 data "aws_caller_identity" "current" {
