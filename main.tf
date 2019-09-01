@@ -4,41 +4,42 @@ terraform {
 
 provider "aws" {
   # Paris
-  region = "eu-west-3"
+  region  = "eu-west-3"
   profile = "my_root"
 }
 
 locals {
-  proj = "terraform-aws-init"
-  bucket_name = "${join("-", list(local.proj, "bucket"))}"
-  pgp_key = "${base64encode(file(pathexpand(var.pgp_key_path)))}"
+  proj        = "terraform-aws-init"
+  bucket_name = join("-", [local.proj, "bucket"])
+  pgp_key     = base64encode(file(pathexpand(var.pgp_key_path)))
 }
 
-data "aws_caller_identity" "current" {}
+data "aws_caller_identity" "current" {
+}
 
 data "template_file" "terraform_backend_policy" {
-  template = "${file("terraform-s3-policy.json")}"
-  vars {
-    bucket_name = "${local.bucket_name}"
-    admin_account_id = "${aws_iam_user.masteradmin.unique_id}"
-    root_account_id = "${data.aws_caller_identity.current.account_id}"
+  template = file("terraform-s3-policy.json")
+  vars = {
+    bucket_name      = local.bucket_name
+    admin_account_id = aws_iam_user.masteradmin.unique_id
+    root_account_id  = data.aws_caller_identity.current.account_id
   }
 }
 
 resource "aws_iam_user" "masteradmin" {
-  name = "MasterAdmin"
-  path = "/system/"
+  name          = "MasterAdmin"
+  path          = "/system/"
   force_destroy = true
 }
 
 resource "aws_iam_access_key" "masteradmin_key" {
-  user = "${aws_iam_user.masteradmin.name}"
-  pgp_key = "${local.pgp_key}"
+  user    = aws_iam_user.masteradmin.name
+  pgp_key = local.pgp_key
 }
 
 resource "aws_iam_user_login_profile" "masteradmin_login_profile" {
-  pgp_key = "${local.pgp_key}"
-  user = "${aws_iam_user.masteradmin.name}"
+  pgp_key = local.pgp_key
+  user    = aws_iam_user.masteradmin.name
 }
 
 resource "aws_iam_group" "masteradmin_group" {
@@ -64,6 +65,7 @@ resource "aws_iam_policy" "billing_full_access" {
     ]
 }
 EOF
+
 }
 
 resource "aws_iam_policy" "administrator_access" {
@@ -79,35 +81,36 @@ resource "aws_iam_policy" "administrator_access" {
   ]
 }
 EOF
+
 }
 
 resource "aws_iam_group_policy_attachment" "admin_access_attachment" {
-  group = "${aws_iam_group.masteradmin_group.id}"
-  policy_arn = "${aws_iam_policy.administrator_access.arn}"
+  group      = aws_iam_group.masteradmin_group.id
+  policy_arn = aws_iam_policy.administrator_access.arn
 }
 
 resource "aws_iam_group_policy_attachment" "billing_access_attachment" {
-  group = "${aws_iam_group.masteradmin_group.id}"
-  policy_arn = "${aws_iam_policy.billing_full_access.arn}"
+  group      = aws_iam_group.masteradmin_group.id
+  policy_arn = aws_iam_policy.billing_full_access.arn
 }
 
 resource "aws_iam_group_membership" "masteradmin_membership" {
-  name = "masteradmin_membership"
-  group = "${aws_iam_group.masteradmin_group.id}"
-  users = ["${aws_iam_user.masteradmin.id}"]
+  name  = "masteradmin_membership"
+  group = aws_iam_group.masteradmin_group.id
+  users = [aws_iam_user.masteradmin.id]
 }
 
 resource "aws_s3_bucket" "terraform_backend_log" {
-  bucket = "${join("-", list(local.proj, "log-bucket"))}"
-  acl = "log-delivery-write"
+  bucket = join("-", [local.proj, "log-bucket"])
+  acl    = "log-delivery-write"
 }
 
 resource "aws_s3_bucket" "terraform_backend" {
-  bucket = "${local.bucket_name}"
-  policy = "${data.template_file.terraform_backend_policy.rendered}"
+  bucket = local.bucket_name
+  policy = data.template_file.terraform_backend_policy.rendered
 
   logging {
-    target_bucket = "${aws_s3_bucket.terraform_backend_log.id}"
+    target_bucket = aws_s3_bucket.terraform_backend_log.id
     target_prefix = "/log"
   }
 
@@ -127,3 +130,4 @@ resource "aws_dynamodb_table" "terraform_lock_table" {
     type = "S"
   }
 }
+
